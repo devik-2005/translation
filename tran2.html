@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Translator with Voice Output</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      text-align: center;
+      background: linear-gradient(135deg, #dfe9f3 0%, #ffffff 100%);
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 850px;
+      margin: 40px auto;
+      padding: 30px;
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+    h2 { color: #004aad; }
+    .language-selection {
+      display: flex; justify-content: center; align-items: center; gap: 10px;
+      margin-bottom: 20px; font-weight: bold;
+    }
+    select, textarea, button {
+      font-family: inherit; font-size: 15px;
+    }
+    select {
+      padding: 8px 12px; border-radius: 10px; border: 1px solid #ccc;
+      outline: none; transition: 0.3s;
+    }
+    select:focus {
+      border-color: #66a6ff; box-shadow: 0 0 5px rgba(102,166,255,0.5);
+    }
+    .text-boxes {
+      display: flex; justify-content: center; gap: 15px; margin-bottom: 20px;
+    }
+    textarea {
+      width: 45%; height: 130px; padding: 12px;
+      border-radius: 12px; border: 1px solid #ccc; resize: none;
+      background: #f9f9f9; transition: 0.3s;
+    }
+    textarea:focus {
+      border-color: #66a6ff; box-shadow: 0 0 8px rgba(102,166,255,0.3);
+      background: #fff;
+    }
+    button {
+      padding: 12px 30px; margin: 10px; border: none;
+      border-radius: 30px; color: #fff; font-weight: bold;
+      background: linear-gradient(to right, #6dd5fa, #2980b9);
+      cursor: pointer; transition: 0.3s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    button:hover {
+      background: linear-gradient(to right, #2980b9, #6dd5fa);
+      transform: translateY(-2px);
+    }
+    audio { margin-top: 15px; width: 80%; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h2>🌍 AI Translator with Voice Output 🔊</h2>
+
+    <div class="language-selection">
+      <label>From:</label>
+      <select id="sourceLang">
+        <option value="auto">Auto Detect</option>
+        <option value="en">English</option>
+        <option value="fr">French</option>
+        <option value="es">Spanish</option>
+        <option value="ta">Tamil</option>
+        <option value="hi">Hindi</option>
+        <option value="de">German</option>
+        <option value="zh-CN">Chinese</option>
+        <option value="ar">Arabic</option>
+        <option value="ru">Russian</option>
+        <option value="ja">Japanese</option>
+      </select>
+
+      <label>To:</label>
+      <select id="targetLang">
+        <option value="en">English</option>
+        <option value="fr">French</option>
+        <option value="es">Spanish</option>
+        <option value="ta">Tamil</option>
+        <option value="hi">Hindi</option>
+        <option value="de">German</option>
+        <option value="zh-CN">Chinese</option>
+        <option value="ar">Arabic</option>
+        <option value="ru">Russian</option>
+        <option value="ja">Japanese</option>
+      </select>
+    </div>
+
+    <div class="text-boxes">
+      <textarea id="inputText" placeholder="🎤 Speak or type here..."></textarea>
+      <textarea id="translatedText" placeholder="Translated text will appear here..." readonly></textarea>
+    </div>
+
+    <div>
+      <button onclick="translateText()">Translate</button>
+      <button onclick="speakText()">🔊 Listen</button>
+      <button onclick="startSpeechRecognition()">🎤 Speak</button>
+      <br>
+      <audio id="ttsAudio" controls></audio>
+    </div>
+  </div>
+
+  <script>
+    async function translateText() {
+      const text = document.getElementById("inputText").value.trim();
+      const sourceLang = document.getElementById("sourceLang").value;
+      const targetLang = document.getElementById("targetLang").value;
+
+      if (!text) {
+        alert("Please enter text to translate.");
+        return;
+      }
+
+      try {
+        // Using more accurate Google Translate API (unofficial endpoint)
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        // Extract translation text
+        const translated = data[0].map(item => item[0]).join('');
+        document.getElementById("translatedText").value = translated;
+
+      } catch (error) {
+        console.error("Translation Error:", error);
+        alert("Translation failed. Please try again.");
+      }
+    }
+
+    function speakText() {
+      const text = document.getElementById("translatedText").value;
+      const targetLang = document.getElementById("targetLang").value;
+
+      if (!text) {
+        alert("Nothing to read!");
+        return;
+      }
+
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${targetLang}&client=tw-ob`;
+      const audio = document.getElementById("ttsAudio");
+      audio.src = ttsUrl;
+      audio.play();
+    }
+
+    function startSpeechRecognition() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert("Speech recognition not supported in this browser. Try Chrome.");
+        return;
+      }
+
+      const recognition = new webkitSpeechRecognition();
+      recognition.lang = document.getElementById("sourceLang").value === "auto" ? "en-US" : document.getElementById("sourceLang").value;
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = function(event) {
+        const result = event.results[0][0].transcript;
+        document.getElementById("inputText").value = result;
+      };
+
+      recognition.onerror = function(event) {
+        console.error("Speech Recognition Error:", event.error);
+      };
+
+      recognition.start();
+    }
+  </script>
+
+</body>
+</html>
